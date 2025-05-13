@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "stare_server"
+version = "0.1.0"
+description = ""
+authors = [""]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10, <3.14"
+clip = {git = "https://github.com/openai/CLIP.git", rev = "dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1"}
+google-api-core = "2.24.1"
+google-auth = "2.38.0"
+google-cloud-vision = "3.9.0"
+googleapis-common-protos = "1.66.0"
+numpy = "2.2.3"
+openpyxl = "3.1.5"
+pandas = "2.2.3"
+pydantic = "2.10.6"
+tiktoken = "0.9.0"
+torch = "2.6.0"
+torchvision = "0.21.0"
+tqdm = "4.67.1"
+wandb = "0.19.8"
+torchinfo = "^1.8.0"
+sentence-transformers = "^3.4.1"
+openai = "^1.68.2"
+xformers = "^0.0.29.post3"
+transformers = "^4.39"
+uvicorn = "^0.34.0"
+fastapi = "^0.115.12"
+accelerate = "^1.6.0"
+python-multipart = "^0.0.20"
+dotenv = "^0.9.9"
+gdown = "^5.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
