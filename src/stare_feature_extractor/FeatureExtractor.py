@@ -9,10 +9,10 @@ from PIL import Image
 from .clip_embedder import clip_embeddder
 from .GoogleVisionOCR import GoogleVisionOCR
 from .Kanavip import Kanavip
-from .model import ClipReverie
+from model import ClipReverie
 from .MultilayerDINOv2 import MultilayerDINOv2
 from .openai_api import AskToOpenaiChatCompletion, InstElements
-from .Patchfy import PatchClipEmbeddder, PatchDinov2Embeddder
+from .Patchfication import PatchClipEmbeddder, PatchDinov2Embeddder
 from .stella_embedder import stella_embedder
 from .TextTokenizer import NETokenizer, OCRTokenizer
 
@@ -68,7 +68,6 @@ class FeatureExtractor:
         self.model = self.model = ClipReverie(
             patch_x=3,
             patch_y=3,
-            default_w=0.6,
         ).cuda(self.device)
         self.model.load_state_dict(torch.load(ckpt_path))
         self.model.eval()

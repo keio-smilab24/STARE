@@ -1,46 +1,41 @@
 # STARE
 
-## Setup
+## Requirements
 
+- CUDA 11.8
+- uv (Python package manager)
+
+**Note**: This project is configured for CUDA 11.8. If you are using a different CUDA version, please check the appropriate PyTorch index URL from [PyTorch Previous Versions](https://pytorch.org/get-started/previous-versions/) and update the `[[tool.uv.index]]` section in `pyproject.toml` accordingly.
+
+## Setup
 ```sh
-pyenv install 3.10.0
-pyenv virtualenv 3.10.0 stare
-pyenv activate stare
-poetry install
+uv sync
 ```
 
 ## Prepare Dataset
-Download from [here](https://storage.googleapis.com/corl_stare/data.tar)
+
+Run the following script to download the dataset and checkpoint:
+
 ```sh
-aria2c -x10 -s10 -k1M https://storage.googleapis.com/corl_stare/data.tar
-tar -xvf data.tar
+bash scripts/download_dataset.sh
 ```
 
 ## Train
 
 ```sh
-poetry run python src/main.py train --epochs 6 --bs 128 --eval_metric r@10 --alpha 0.8 --lambda_neg 0.8 --gamma 0.5 --eval_start_epoch 0 --eval_freq 1
+bash scripts/train.sh
 ```
 
-## Evaluation
+## Test
 
-- checkpoint is available at [here](https://storage.googleapis.com/corl_stare/stare.tar)
+```sh
+bash scripts/test.sh
+```
 
-  ```sh
-  aria2c -x10 -s10 -k1M https://storage.googleapis.com/corl_stare/stare.tar
-  tar -xvf stare.tar
-  ```
-
-- test
-  ```sh
-  export CHECKPOINT_PATH=model/stare.pth
-  poetry run python src/main.py test --infer_model_path ${CHECKPOINT_PATH}
-  ```
-
-Expected results are as follow:
+Expected results (averaged over 5 runs with different seed values) are as follows:
 | [%] | Recall@1↑ | Recall@5↑ | Recall@10↑ | Recall@20↑ |
 | :--: | :--: | :--: | :--: | :--: |
-| GoGetIt (RefText) | 71.3 | 91.1 | 95.0 | 97.3 |
-| GoGetIt (Instruction) | 72.2 | 88.5 | 92.6 | 95.4 |
-| TextCaps-test | 78.4 | 93.3 | 96.1 | 99.0 |
-| LTRRIE | 26.6 | 72.1 | 87.1 | 94.8 |
+| GoGetIt (RefText) | 71.6 | 90.2 | 94.4 | 96.9 |
+| GoGetIt (Instruction) | 74.0 | 89.8 | 92.8 | 95.6 |
+| TextCaps-test | 77.4 | 92.4 | 95.4 | 98.3 |
+| LTRRIE | 25.8 | 72.5 | 86.6 | 95.4 |

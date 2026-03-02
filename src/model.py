@@ -3,6 +3,8 @@ import math
 
 import torch
 import torch.nn.functional as F
+from transformers.models.mamba.configuration_mamba import MambaConfig
+from transformers.models.mamba.modeling_mamba import MambaMixer
 
 
 class ClipReverie(torch.nn.Module):
@@ -222,7 +224,18 @@ class ClipReverie(torch.nn.Module):
         return logits
 
     def create_encoder(self, h, d_model, d_ff, dropout, N):
-        config = TransformerConfig(h, d_model, d_ff, dropout, N)
+        mamba_config = MambaConfig(
+            hidden_size=d_model,
+            state_size=8,
+            conv_kernel=4,
+            expand=1.5,
+            use_bias=True,
+            use_conv_bias=True,
+            hidden_act="silu",
+        )
+        config = MambaTransformerConfig(
+            d_model, d_ff, dropout, N, mamba_config=mamba_config
+        )
         return config.create_encoder()
 
 
@@ -233,6 +246,22 @@ class Encoder(torch.nn.Module):
         self.norm = LayerNorm(layer.size)
 
     def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        x = self.norm(x)
+        return x
+
+
+class SSMEncoder(torch.nn.Module):
+    """Core encoder is a stack of N layers"""
+
+    def __init__(self, layers):
+        super(SSMEncoder, self).__init__()
+        self.layers = torch.nn.ModuleList(layers)
+        self.norm = torch.nn.LayerNorm(layers[0].size)
+
+    def forward(self, x):
+        """Pass the input through each layer in turn."""
         for layer in self.layers:
             x = layer(x)
         x = self.norm(x)
@@ -253,6 +282,22 @@ class EncoderLayer(torch.nn.Module):
 
     def forward(self, x):
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x))
+        return self.sublayer[1](x, self.feed_forward)
+
+
+class MambaEncoderLayer(torch.nn.Module):
+    """Encoder is made up of self-attn and feed forward (defined below)"""
+
+    def __init__(self, size, self_attn, feed_forward, dropout):
+        super(MambaEncoderLayer, self).__init__()
+        self.self_attn = self_attn
+        self.feed_forward = feed_forward
+        self.sublayer = clones(SublayerConnection(size, dropout), 2)
+        self.size = size
+
+    def forward(self, x):
+        """Follow Figure 1 (left) for connections."""
+        x = self.sublayer[0](x, lambda x: self.self_attn(x))
         return self.sublayer[1](x, self.feed_forward)
 
 
@@ -427,3 +472,31 @@ class AttentionPooling(torch.nn.Module):
         attn_weights = torch.softmax(query @ x.transpose(1, 2), dim=-1)
         pooled = attn_weights @ x
         return self.proj(pooled.squeeze(1))
+
+
+class MambaTransformerConfig:
+    """Transformer settings with MambaMixer"""
+
+    def __init__(self, d_model, d_ff, dropout, N, mamba_config):
+        self.d_model = d_model
+        self.d_ff = d_ff
+        self.dropout = dropout
+        self.N = N
+        self.mamba_config = mamba_config or MambaConfig(
+            hidden_size=d_model,
+            state_size=16,
+            conv_kernel=4,
+            expand=2,
+            use_bias=True,
+            use_conv_bias=True,
+            hidden_act="silu",
+        )
+
+    def create_encoder(self):
+        layers = []
+        for i in range(self.N):
+            drop = (i + 1) / self.N
+            attn = MambaMixer(config=self.mamba_config, layer_idx=i)
+            ff = PositionwiseFeedForward(self.d_model, self.d_ff, self.dropout)
+            layers.append(MambaEncoderLayer(self.d_model, attn, ff, dropout=drop))
+        return SSMEncoder(layers)

@@ -6,6 +6,7 @@ import tqdm
 from google.cloud import vision
 from PIL import Image
 
+
 class GoogleVisionOCR:
     def __init__(self, credentials_path):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
@@ -13,7 +14,7 @@ class GoogleVisionOCR:
 
     def perform_ocr(self, image: Image):
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format=image.format or 'PNG')
+        image.save(img_byte_arr, format=image.format or "PNG")
         content = img_byte_arr.getvalue()
 
         image = vision.Image(content=content)
@@ -64,8 +65,8 @@ class GoogleVisionOCR:
 
 if __name__ == "__main__":
     database_path_list = [
-        "data/original_reftext/original_reftext_database.json",
-        "data/new_reftext/new_reftext_database.json",
+        "data/gogetit_reftext/gogetit_reftext_database.json",
+        "data/gogetit_instruction/gogetit_instruction_database.json",
     ]
     ocr = GoogleVisionOCR()
 

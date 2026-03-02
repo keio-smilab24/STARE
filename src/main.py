@@ -16,7 +16,6 @@ from tqdm import tqdm
 
 import callback_server
 import dataloader
-import performance_timer
 import wandb
 from double_relaxed_contrastive_loss import DoubleRelaxedContrastiveLoss
 from model import ClipReverie
@@ -35,13 +34,13 @@ class TextImageRetrievalMain:
 
     VAL_ENVIRONMENT_DICT = {
         "ltrrie": ["EU6Fwq7SyZv", "oLBMNvg9in8", "x8F5xyUWy9e", "zsNo4HB9uLZ"],
-        "original_reftext": ["val"],
-        "new_reftext": ["val"],
+        "gogetit_reftext": ["val"],
+        "gogetit_instruction": ["val"],
     }
     TEST_ENVIRONMENT_DICT = {
         "ltrrie": ["2azQ1b91cZZ", "QUCTc6BB5sX", "TbHJrupSAjP", "X7HyMhZNoso"],
-        "original_reftext": ["home", "other", "shelf", "street", "oov", "semantic"],
-        "new_reftext": ["home", "other", "shelf", "street"],
+        "gogetit_reftext": ["home", "other", "shelf", "street", "oov", "semantic"],
+        "gogetit_instruction": ["home", "other", "shelf", "street"],
         "textcaps": ["test"],
     }
 
@@ -521,11 +520,10 @@ class TextImageRetrievalMain:
         image_embeddings, ocr_tokens = self.embed_image(image)
         text_embeddings, ne_tokens = self.embed_instruction(instruction)
 
-        with performance_timer.get_timer("forward with model", self.args.profiling):
-            score = self.calc_similarity(
-                image_embeddings, text_embeddings, ocr_tokens, ne_tokens
-            )
-            score = score[0][0]
+        score = self.calc_similarity(
+            image_embeddings, text_embeddings, ocr_tokens, ne_tokens
+        )
+        score = score[0][0]
         return score
 
     def embed_image(self, image):
@@ -590,19 +588,6 @@ class TextImageRetrievalMain:
         logits = logits[0]
         return logits
 
-        print(f"score: {logits}")
-        scores = []
-        for text_idx, text_score_list in enumerate(logits):
-            topk_indices = np.argsort(text_score_list)[-num_k:][::-1]
-            topk = [(int(idx), float(text_score_list[idx])) for idx in topk_indices]
-            scores.append(topk)
-
-        print(f"scores: {scores}")
-        ret = [score[0] for score in scores]
-        print(f"ret: {ret}")
-
-        return ret
-
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
@@ -623,31 +608,31 @@ def parse_args(argv=None):
     parser.add_argument(
         "--train_dataset_name",
         nargs="+",
-        choices=["ltrrie", "new_reftext", "original_reftext"],
+        choices=["ltrrie", "gogetit_instruction", "gogetit_reftext"],
         default=[
             "ltrrie",
-            "new_reftext",
-            "original_reftext",
+            "gogetit_instruction",
+            "gogetit_reftext",
         ],
     )
     parser.add_argument(
         "--val_dataset_name",
         nargs="+",
-        choices=["ltrrie", "original_reftext", "new_reftext"],
+        choices=["ltrrie", "gogetit_reftext", "gogetit_instruction"],
         default=[
             "ltrrie",
-            "original_reftext",
-            "new_reftext",
+            "gogetit_reftext",
+            "gogetit_instruction",
         ],
     )
     parser.add_argument(
         "--test_dataset_name",
         nargs="+",
-        choices=["ltrrie", "original_reftext", "new_reftext", "textcaps"],
+        choices=["ltrrie", "gogetit_reftext", "gogetit_instruction", "textcaps"],
         default=[
             "ltrrie",
-            "original_reftext",
-            "new_reftext",
+            "gogetit_reftext",
+            "gogetit_instruction",
             "textcaps",
         ],
     )
@@ -700,10 +685,9 @@ def tir_main():
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     if args.wandb_name:
-        wandb.init(project="clip-reverie", name=args.wandb_name)
+        wandb.init(project="stare", name=args.wandb_name)
 
-    with performance_timer.get_timer("build model", args.profiling):
-        tir = TextImageRetrievalMain(args)
+    tir = TextImageRetrievalMain(args)
 
     if args.mode == "train":
         tir.train_model(
